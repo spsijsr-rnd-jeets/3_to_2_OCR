@@ -13,6 +13,7 @@ import os
 import sys
 import copy
 import threading 
+
 regions = [
  
     {'top': 388, 'left': 757, 'width': 286, 'height': 86, 'name': 'roi1'},
@@ -64,12 +65,41 @@ def launch_mission_planner():
     
 def maximize_until_mission_planner():
     """Maximize Mission planner window and record its position."""
+    global media_player_rect
     try:
         
         pyautogui.hotkey("win", "tab")
         time.sleep(1.5)
         minimized_windows = [win for win in gw.getAllWindows() if win.isMinimized]
-        max_attempts = len(minimized_windows) if minimized_windows else 5  # Dynamically set attempts
+        if minimized_windows:
+           print("Minimized Windows:")
+           for win in minimized_windows:
+              print(f"- {win.title}")
+           mission_planner_found = any("Mission Planner" in win.title for win in minimized_windows)
+           if not mission_planner_found:
+                print("Mission Planner is not minimized. Launching it...")
+                if launch_mission_planner() :
+                   time.sleep(1)
+                   active_window = gw.getActiveWindow()
+                   if active_window and "Mission Planner" in active_window.title:
+                        print("Mission Planner detected after launch! Maximizing...")
+                        if not active_window.isMaximized:
+                                pyautogui.hotkey("win", "up")
+                                time.sleep(1)
+                        media_player_rect = {
+                        'left': active_window.left,
+                        'top': active_window.top,
+                        'width': active_window.width,
+                        'height': active_window.height}
+                        root.deiconify()  # Show the ROI Viewer again
+                        root.lift()  # Bring ROI Viewer to the top
+                        root.attributes("-topmost", True)  # Keep it above all windows
+                        time.sleep(1)  
+                        root.attributes("-topmost", False)  # Allow normal window interactions
+                        return True 
+                
+
+        max_attempts = len(minimized_windows) if minimized_windows else 3  # Dynamically set attempts
         step = 1
         attempts = 0
 
@@ -92,7 +122,7 @@ def maximize_until_mission_planner():
                         time.sleep(1)
                     # Refresh window info after maximizing
                     active_window = gw.getActiveWindow()
-                    global media_player_rect
+                    media_player_rect
                     media_player_rect = {
                         'left': active_window.left,
                         'top': active_window.top,
